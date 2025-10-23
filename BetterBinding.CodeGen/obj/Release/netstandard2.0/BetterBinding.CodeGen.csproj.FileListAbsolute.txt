@@ -1,0 +1,10 @@
+/mnt/data/Projects/BetterBinding/BetterBinding.CodeGen/bin/Release/netstandard2.0/BetterBinding.CodeGen.deps.json
+/mnt/data/Projects/BetterBinding/BetterBinding.CodeGen/bin/Release/netstandard2.0/BetterBinding.CodeGen.dll
+/mnt/data/Projects/BetterBinding/BetterBinding.CodeGen/bin/Release/netstandard2.0/BetterBinding.CodeGen.pdb
+/mnt/data/Projects/BetterBinding/BetterBinding.CodeGen/obj/Release/netstandard2.0/BetterBinding.CodeGen.csproj.AssemblyReference.cache
+/mnt/data/Projects/BetterBinding/BetterBinding.CodeGen/obj/Release/netstandard2.0/BetterBinding.CodeGen.GeneratedMSBuildEditorConfig.editorconfig
+/mnt/data/Projects/BetterBinding/BetterBinding.CodeGen/obj/Release/netstandard2.0/BetterBinding.CodeGen.AssemblyInfoInputs.cache
+/mnt/data/Projects/BetterBinding/BetterBinding.CodeGen/obj/Release/netstandard2.0/BetterBinding.CodeGen.AssemblyInfo.cs
+/mnt/data/Projects/BetterBinding/BetterBinding.CodeGen/obj/Release/netstandard2.0/BetterBinding.CodeGen.csproj.CoreCompileInputs.cache
+/mnt/data/Projects/BetterBinding/BetterBinding.CodeGen/obj/Release/netstandard2.0/BetterBinding.CodeGen.dll
+/mnt/data/Projects/BetterBinding/BetterBinding.CodeGen/obj/Release/netstandard2.0/BetterBinding.CodeGen.pdb
