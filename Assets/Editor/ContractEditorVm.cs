@@ -4,7 +4,6 @@ using System;
 using System.Collections.Generic;
 using BetterBinding.Runtime;
 using UnityEditor;
-using UnityEngine;
 
 namespace BetterBinding.Editor
 {
@@ -29,7 +28,7 @@ namespace BetterBinding.Editor
                 {
                     return;
                 }
-                Debug.LogError("Set contract name to " + newContractName);
+                
                 if (newContractName.IsNullOrEmpty()
                     || !BinderHelper.ContractsByName.TryGetValue(newContractName, out var contractId))
                 {

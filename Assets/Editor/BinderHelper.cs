@@ -54,7 +54,7 @@ namespace BetterBinding.Editor
         private static IEnumerable<(string Name, Type Type)> GetBindableProperties(Type type)
         {
             return type.GetProperties()
-                .Where(property => property.Name.Contains("Property") 
+                .Where(property => property.PropertyType.Name.Contains("Property") 
                                    || BaseType.IsAssignableFrom(property.PropertyType) 
                                       && property.PropertyType != BaseType)
                 .Select(property => (property.Name, property.PropertyType));
