@@ -3,32 +3,33 @@
 using System;
 using System.Collections.Generic;
 using BetterBinding.Runtime;
+using BetterBinding.Runtime.Bindings;
 using UnityEditor;
 
 namespace BetterBinding.Editor
 {
-    public class ContractEditorVm
+    public partial class ContractEditorVm : IDisposable
     {
         public string ContractName { get; private set; } = string.Empty;
-        public List<string> PossibleContracts { get; } = new ();
+        public List<string> PossibleContracts { get; } = new();
         public List<BindingVm> Bindings { get; } = new();
-        public Property<Unit> OpenContractCommand { get; } = new();
-        public Property<string> SetContractCommand { get; } = new();
-        
+        public Property<Unit> OpenContractCommand { get; } = Property<Unit>.Command();
+        public Property<string> SetContractCommand { get; } = Property<string>.Command();
+
         public ContractEditorVm(SerializedProperty contractIdProperty, SerializedProperty bindingsProperty)
         {
             if (BinderHelper.ContractsById.TryGetValue(contractIdProperty.ulongValue, out var contractName))
             {
                 ContractName = contractName;
             }
-        
-            SetContractCommand.Changed += newContractName =>
+
+            SetContractCommand.Subscribe(newContractName =>
             {
                 if (ContractName.Equals(newContractName, StringComparison.InvariantCultureIgnoreCase))
                 {
                     return;
                 }
-                
+
                 if (newContractName.IsNullOrEmpty()
                     || !BinderHelper.ContractsByName.TryGetValue(newContractName, out var contractId))
                 {
@@ -41,7 +42,7 @@ namespace BetterBinding.Editor
                 contractIdProperty.serializedObject.ApplyModifiedProperties();
                 ContractName = newContractName;
                 RecreateBindings(contractIdProperty.ulongValue, bindingsProperty);
-            };
+            });
 
             RecreateBindings(contractIdProperty.ulongValue, bindingsProperty);
         }
@@ -54,7 +55,7 @@ namespace BetterBinding.Editor
             }
         }
 
-        private void CreateBindings(SerializedProperty bindingsProperty, Dictionary<ulong, 
+        private void CreateBindings(SerializedProperty bindingsProperty, Dictionary<ulong,
             (string Name, Type Type)> propertiesNames)
         {
             foreach (var bindableProperty in propertiesNames)
@@ -63,27 +64,46 @@ namespace BetterBinding.Editor
                 for (var i = 0; i < bindingsProperty.arraySize; i++)
                 {
                     var serializedBinding = bindingsProperty.GetArrayElementAtIndex(i);
-                    var propertyId = serializedBinding.FindPropertyRelative("Id").ulongValue;
+                    var propertyId = serializedBinding.FindPropertyRelative(nameof(Binder.SerializedBinding.Id))
+                        .ulongValue;
                     if (propertyId != bindableProperty.Key)
                     {
                         continue;
                     }
-                    
+
                     serializedBindingForProperty = serializedBinding;
                     break;
                 }
 
-                if (serializedBindingForProperty == null)
-                {
-                    bindingsProperty.arraySize++;
-                    serializedBindingForProperty = bindingsProperty.GetArrayElementAtIndex(bindingsProperty.arraySize - 1);
-                    serializedBindingForProperty.FindPropertyRelative("Id").ulongValue = bindableProperty.Key;
-                    bindingsProperty.serializedObject.ApplyModifiedProperties();
-                }
-            
+                serializedBindingForProperty ??= CreateMissingBinding(bindingsProperty, bindableProperty);
+
                 Bindings.Add(new BindingVm(serializedBindingForProperty, bindableProperty.Value));
             }
-        
+        }
+
+        private static SerializedProperty CreateMissingBinding(SerializedProperty bindingsProperty,
+            KeyValuePair<ulong, (string Name, Type Type)> bindableProperty)
+        {
+            bindingsProperty.arraySize++;
+            var serializedBindingForProperty = bindingsProperty.GetArrayElementAtIndex(bindingsProperty.arraySize - 1);
+            serializedBindingForProperty.FindPropertyRelative(nameof(Binder.SerializedBinding.Id)).ulongValue =
+                bindableProperty.Key;
+            serializedBindingForProperty.FindPropertyRelative(nameof(Binder.SerializedBinding.Bindings)).arraySize = 0;
+            bindingsProperty.serializedObject.ApplyModifiedProperties();
+            return serializedBindingForProperty;
+        }
+
+        public void Dispose()
+        {
+            // TODO: bindable collections
+            foreach (var binding in Bindings)
+            {
+                binding.Dispose();
+            }
+            
+            Bindings.Clear();
+            
+            DisposeInternal();
         }
     }
 }

@@ -3,7 +3,7 @@
 using System;
 using UnityEngine;
 
-namespace BetterBinding.Runtime
+namespace BetterBinding.Runtime.Bindings
 {
     public class Binder : MonoBehaviour, IBindable<IViewModel>
     {

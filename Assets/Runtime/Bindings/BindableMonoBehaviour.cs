@@ -3,7 +3,7 @@
 using System;
 using UnityEngine;
 
-namespace BetterBinding.Runtime
+namespace BetterBinding.Runtime.Bindings
 {
     [Serializable]
     public class BindableMonoBehaviour : IBindable<IViewModel>
@@ -16,7 +16,7 @@ namespace BetterBinding.Runtime
             _binder.Bind(value);
         }
 
-        public void Bind(object value)
+        public void Bind(object? value)
         {
             _binder.Bind(value);
         }

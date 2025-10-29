@@ -10,6 +10,7 @@ namespace BetterBinding.Editor
 {
     public static class BinderHelper
     {
+        private const string PropertyName = "Property";
         private static readonly Type BaseType = typeof(IViewModel);
         private static readonly Type MonoBehaviourType = typeof(MonoBehaviour);
         public static readonly Dictionary<string, ulong> ContractsByName = new();
@@ -54,7 +55,7 @@ namespace BetterBinding.Editor
         private static IEnumerable<(string Name, Type Type)> GetBindableProperties(Type type)
         {
             return type.GetProperties()
-                .Where(property => property.PropertyType.Name.Contains("Property") 
+                .Where(property => property.PropertyType.Name.Contains(PropertyName) 
                                    || BaseType.IsAssignableFrom(property.PropertyType) 
                                       && property.PropertyType != BaseType)
                 .Select(property => (property.Name, property.PropertyType));

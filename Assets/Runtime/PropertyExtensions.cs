@@ -6,12 +6,12 @@ namespace BetterBinding.Runtime
     {
         public static void Execute(this Property<Unit> property)
         {
-            property.OnNext(Unit.Default, true);
+            property.OnNext(Unit.Default);
         }
     
         public static void Execute<T>(this Property<T> property, T? value)
         {
-            property.OnNext(value, true);
+            property.OnNext(value);
         }
 
         public static void Flip(this Property<bool> property)

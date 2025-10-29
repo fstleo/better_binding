@@ -1,5 +1,5 @@
 {
-    "name": "Example",
+    "name": "Sample",
     "rootNamespace": "BetterBinding",
     "references": [
         "GUID:2324d62c81fcee14ab3a419d3d830e71",

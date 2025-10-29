@@ -2,6 +2,7 @@
 
 using System.Linq;
 using BetterBinding.Runtime;
+using BetterBinding.Runtime.Bindings;
 using UnityEditor;
 using UnityEngine;
 
@@ -44,6 +45,11 @@ namespace BetterBinding.Editor
         
             _vm = new ContractEditorVm(serializedObject.FindProperty("_contractId"), serializedObject.FindProperty("_serializedBindings"));
             _vm.PossibleContracts.AddRange(BinderHelper.ContractsByName.Keys);
+        }
+
+        private void OnDisable()
+        {
+            _vm.Dispose();
         }
 
         public override void OnInspectorGUI()
@@ -153,7 +159,7 @@ namespace BetterBinding.Editor
                 if (GUILayout.Button(string.Empty, _deleteButtonStyle)
                     && EditorUtility.DisplayDialog("Delete binding", "Are you sure?", "Yes", "No"))
                 {
-                    binding.RemoveViewCommand.OnNext(index, true);
+                    binding.RemoveBindingCommand.OnNext(index);
                     index--;
                     continue;
                 }
@@ -186,7 +192,7 @@ namespace BetterBinding.Editor
             {
                 PopupWindow.Show(rect,
                     new SearchPopup(binding.PossibleTypesList.Select(type => type.Name).ToList(),
-                        result => { binding.AddBinding.Execute(result); }));
+                        binding.AddBindingCommand.Execute));
             }
         }
 

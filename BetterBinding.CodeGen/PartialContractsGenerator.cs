@@ -2,6 +2,8 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Text;
 using BetterBinding.CodeGen.Utils;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -22,8 +24,7 @@ namespace BetterBinding.CodeGen
             var moduleFullName = context.Compilation.SourceModule.Name;
             if (moduleFullName.StartsWith("UnityEngine.")) return;
             if (moduleFullName.StartsWith("UnityEditor.")) return;
-            if (moduleFullName.StartsWith("Unity.")) return;
- 
+            if (moduleFullName.StartsWith("Unity.")) return; 
             var syntaxCollector = (SyntaxCollector)context.SyntaxReceiver!;
             
             var contractsList = new List<(TypeDeclarationSyntax typeDeclarationSyntax, INamedTypeSymbol namedTypeSymbol)>();
@@ -63,7 +64,26 @@ namespace BetterBinding.CodeGen
                 namespaceScope = contractWriter.BeginBlockScope($"namespace {containingNamespace}");
             }
             contractWriter.AppendLine();
-            using (contractWriter.BeginBlockScope($"{viewModel.ToString().Split('\n')[0]} : IViewModel"))
+            foreach (var parameter in viewModel.Modifiers)
+            {
+                contractWriter.AppendLine("//" + parameter.Text);
+            }
+
+            var declarationBuilder = new StringBuilder();
+            var modifiers = viewModel.Modifiers.Select(modifier => modifier.Text);
+            foreach (var modifier in modifiers)
+            {
+                declarationBuilder.Append(modifier + " ");
+            }
+
+            declarationBuilder.Append($"class {viewModel.Identifier.Text} : IViewModel");
+            if (viewModel.BaseList == null 
+                || viewModel.BaseList.Types.All(type => type.ToString() != nameof(IDisposable)))
+            {
+                declarationBuilder.Append($", {nameof(IDisposable)}");
+            }
+            
+            using (contractWriter.BeginBlockScope($"{declarationBuilder}"))
             {
                 GeneratePropertiesList(contractWriter, viewModel);
                 contractWriter.AppendLine();
@@ -97,12 +117,13 @@ namespace BetterBinding.CodeGen
 
         private static void GeneratePropertiesList(CodeWriter contractWriter, TypeDeclarationSyntax viewModel)
         {
+            var bindableProperties = viewModel.GetBindableProperties().ToArray();
             using (contractWriter.BeginBlockScope("public bool TryGetProperty(ulong id, [NotNullWhen(true)] out object? value)"))
             {
                 //TODO: Make it Dictionary for many (>5?) properties
                 using (contractWriter.BeginBlockScope("switch (id)"))
                 {
-                    foreach (var property in viewModel.GetBindableProperties())
+                    foreach (var property in bindableProperties)
                     {
                         var propertyName = property.Identifier.ToString();
                         var propertyHash = CalculateHash(propertyName);
@@ -112,6 +133,29 @@ namespace BetterBinding.CodeGen
                     contractWriter.AppendLine("default: { value = null; return false; }");
                 }
             }
+
+            if (!viewModel.Members.Any(member => member
+                    is MethodDeclarationSyntax method && method.Identifier.Text
+                    .Equals("Dispose", StringComparison.InvariantCultureIgnoreCase)))
+            {
+                using (contractWriter.BeginBlockScope("public void Dispose()"))
+                {
+                    contractWriter.AppendLine("DisposeInternal();");
+                }
+            }
+            
+            
+            contractWriter.AppendLine();
+            using (contractWriter.BeginBlockScope("private void DisposeInternal()"))
+            {
+                foreach (var property in bindableProperties)
+                {
+                    var propertyName = property.Identifier.ToString();
+                    contractWriter.AppendLine($"{propertyName}.Dispose();");
+                }
+            }
+            
+            contractWriter.AppendLine();
         }
         
         //TODO: move to a separate lib

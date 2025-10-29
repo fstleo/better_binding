@@ -3,19 +3,20 @@
 using System;
 using System.Collections.Generic;
 using BetterBinding.Runtime;
+using BetterBinding.Runtime.Bindings;
 using UnityEditor;
 
 namespace BetterBinding.Editor
 {
-    public class BindingVm
+    public partial class BindingVm
     {
         public bool CanBeFoldout { get; private set; }
-        public Property<Unit> ToggleFoldoutCommand { get; } = new();
+        public Property<Unit> ToggleFoldoutCommand { get; } = Property<Unit>.Command();
         public bool Foldout { get; private set; }
         public string Name { get; private set; }
-        public Property<int> RemoveViewCommand { get; } = new();
+        public Property<int> RemoveBindingCommand { get; } = Property<int>.Command();
         public List<Type> PossibleTypesList { get; } = new();
-        public Property<string> AddBinding { get; } = new();
+        public Property<string> AddBindingCommand { get; } = Property<string>.Command();
         public SerializedProperty BindingsArray { get; } 
 
         public BindingVm(SerializedProperty property, (string Name, Type Type) propertyInfo)
@@ -26,48 +27,55 @@ namespace BetterBinding.Editor
                 PossibleTypesList.Add(bindableType);
             }
 
-            BindingsArray = property.FindPropertyRelative("Bindings");
+            BindingsArray = property.FindPropertyRelative(nameof(Binder.SerializedBinding.Bindings));
             CanBeFoldout = BindingsArray.arraySize > 0;
-            AddBinding.Changed += bindableTypeName =>
-            {
-                if (string.IsNullOrEmpty(bindableTypeName))
-                {
-                    return;
-                }
-
-                foreach (var type in PossibleTypesList)
-                {
-                    if (type.Name.Equals(bindableTypeName, StringComparison.InvariantCultureIgnoreCase))
-                    {
-                        BindingsArray.InsertArrayElementAtIndex(BindingsArray.arraySize);
-                        CreateInstance(BindingsArray.GetArrayElementAtIndex(BindingsArray.arraySize - 1), type);
-                    
-                        CanBeFoldout = BindingsArray.arraySize > 0;
-                    }
-                }
-            };
-        
-            ToggleFoldoutCommand.Changed += _ =>
-            {
-                if (CanBeFoldout)
-                {
-                    Foldout = !Foldout;
-                }
-            };
-
-            RemoveViewCommand.Changed += index =>
-            {
-                BindingsArray.DeleteArrayElementAtIndex(index);
-                BindingsArray.serializedObject.ApplyModifiedProperties();
-                CanBeFoldout = BindingsArray.arraySize > 0;
-            };
+            AddBindingCommand.Subscribe(AddBinding);
+            ToggleFoldoutCommand.Subscribe(ToggleFoldout);
+            RemoveBindingCommand.Subscribe(RemoveBinding);
         }
-    
+
+        private void RemoveBinding(int index)
+        {
+            BindingsArray.DeleteArrayElementAtIndex(index);
+            BindingsArray.serializedObject.ApplyModifiedProperties();
+            CanBeFoldout = BindingsArray.arraySize > 0;
+        }
+
+        private void ToggleFoldout(Unit _)
+        {
+            if (CanBeFoldout)
+            {
+                Foldout = !Foldout;
+            }
+        }
+
+        private void AddBinding(string? bindableTypeName)
+        {
+            if (string.IsNullOrEmpty(bindableTypeName))
+            {
+                return;
+            }
+
+            foreach (var type in PossibleTypesList)
+            {
+                if (!type.Name.Equals(bindableTypeName, StringComparison.InvariantCultureIgnoreCase))
+                {
+                    continue;
+                }
+
+                BindingsArray.InsertArrayElementAtIndex(BindingsArray.arraySize);
+                CreateInstance(BindingsArray.GetArrayElementAtIndex(BindingsArray.arraySize - 1), type);
+
+                CanBeFoldout = BindingsArray.arraySize > 0;
+            }
+        }
+
         private static void CreateInstance(SerializedProperty property, Type type)
         {
             var target = Activator.CreateInstance(type);
             property.managedReferenceValue = target;
             property.serializedObject.ApplyModifiedProperties();
         }
+
     }
 }

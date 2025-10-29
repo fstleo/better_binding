@@ -2,7 +2,7 @@
 
 namespace BetterBinding.Runtime
 {
-    public interface IBindable<T> : IBindable
+    public interface IBindable<in T> : IBindable
     {
         void Bind(T value);
     }
