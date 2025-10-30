@@ -1,0 +1,17 @@
+{
+  "name": "com.fstleo.betterbinding",
+  "version": "1.0.0",
+  "displayName": "Better Binding",
+  "description": "Allows binding Unity components to reactive properties",
+  "unity": "2021.3",
+  "unityRelease": "1",
+  "keywords": [
+    "binding",
+    "ui",
+    "ugui"
+  ],
+  "author": {
+    "name": "fstleo",
+    "url": "https://github.com/fstleo"
+  }
+}
