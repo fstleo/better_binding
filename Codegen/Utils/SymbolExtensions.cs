@@ -8,37 +8,70 @@ namespace BetterBinding.CodeGen.Utils;
 
 public static class SymbolExtensions
 {
-    public static IEnumerable<PropertyDeclarationSyntax> GetBindableProperties(this TypeDeclarationSyntax type)
+    private static readonly string[] BindableInterfaces = 
+    [
+        "IObservable", 
+        "IViewModel"
+    ];
+
+    public static IEnumerable<PropertyDeclarationSyntax> GetBindableProperties(this TypeDeclarationSyntax type, 
+        SemanticModel semanticModel)
     {
         foreach (var member in type.Members)
         {
-            if (member is PropertyDeclarationSyntax property && IsBindableProperty(member))
+            if (member is PropertyDeclarationSyntax property && IsBindableProperty(member, semanticModel))
             {
                 yield return property;
             }
         }
     }
 
-    private static bool IsBindableProperty(this MemberDeclarationSyntax member)
+    private static bool IsBindableProperty(this MemberDeclarationSyntax member, SemanticModel semanticModel)
     {
-        return member is PropertyDeclarationSyntax property && property.Type.ToString().Contains("Property<");
-                                                                //|| IsBindableContract(property)); //TODO: add contracts check
+        if (member is not PropertyDeclarationSyntax property)
+        {
+            return false;
+        }
+        
+        var propertyType = semanticModel.GetTypeInfo(property.Type);
+        if (propertyType.Type is null)
+        {
+            return false;
+        }
+            
+        foreach (var implementedInterface in propertyType.Type.AllInterfaces)
+        {
+            foreach (var bindableInterface in BindableInterfaces)
+            {
+                if (implementedInterface.Name.Contains(bindableInterface))
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
+    private static string MakeName(string? namespaceName, string namespaceDecl)
+    {
+        return namespaceDecl + (namespaceName == null ? "" : "." + namespaceName);
+        
+    }
     public static string? GetFullNamespace(this TypeDeclarationSyntax type)
     {
         string? namespaceName = null;
-        SyntaxNode? parent = type.Parent;
+        var parent = type.Parent;
 
         while (parent != null)
         {
             switch (parent)
             {
                 case NamespaceDeclarationSyntax namespaceDecl:
-                    namespaceName = namespaceDecl.Name + (namespaceName == null ? "" : "." + namespaceName);
+                    namespaceName = MakeName(namespaceName, namespaceDecl.Name.ToString());
                     break;
                 case FileScopedNamespaceDeclarationSyntax fileScopedNamespaceDecl:
-                    namespaceName = fileScopedNamespaceDecl.Name + (namespaceName == null ? "" : "." + namespaceName);
+                    namespaceName = MakeName(namespaceName, fileScopedNamespaceDecl.Name.ToString());
                     break;
             }
 

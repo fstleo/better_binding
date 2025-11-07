@@ -26,11 +26,11 @@ public class CodeWriter
     private readonly struct BlockScope : IDisposable
     {
         private readonly CodeWriter _source;
-        private readonly char? _appendSemicolon;
+        private readonly char? _appendSymbol;
 
-        public BlockScope(CodeWriter source, string startLine = "", char? appendSemicolon = null)
+        public BlockScope(CodeWriter source, string startLine = "", char? appendSymbol = null)
         {
-            _appendSemicolon = appendSemicolon;
+            _appendSymbol = appendSymbol;
             _source = source;
             source.AppendLine(startLine);
             source.BeginBlock();
@@ -38,7 +38,7 @@ public class CodeWriter
 
         public void Dispose()
         {
-            _source.EndBlock(_appendSemicolon);
+            _source.EndBlock(_appendSymbol);
         }
     }
 
@@ -53,7 +53,7 @@ public class CodeWriter
         }
         else
         {
-            _buffer.AppendLine($"{new string(' ', _indentLevel * 4)} {value}");
+            _buffer.AppendLine($"{new string(' ', _indentLevel * 4)}{value}");
         }
     }
 
@@ -82,7 +82,7 @@ public class CodeWriter
     public void EndBlock(char? endSymbol = null)
     {
         DecreaseIndent();
-        AppendLine($"}}{endSymbol ?? '\n'}");
+        AppendLine($"}}{endSymbol}");
     }
 
     public void Clear()

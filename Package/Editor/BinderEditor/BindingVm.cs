@@ -4,10 +4,12 @@ using System;
 using System.Collections.Generic;
 using BetterBinding.Runtime;
 using BetterBinding.Runtime.Bindings;
+using BetterBinding.Editor.Utils;
 using UnityEditor;
 
-namespace BetterBinding.Editor
+namespace BetterBinding.Editor.BinderEditor
 {
+    [HideInBinder]
     public partial class BindingVm
     {
         public bool CanBeFoldout { get; private set; }
@@ -22,7 +24,7 @@ namespace BetterBinding.Editor
         public BindingVm(SerializedProperty property, (string Name, Type Type) propertyInfo)
         {
             Name = propertyInfo.Name;
-            foreach (var bindableType in BinderHelper.GetBindableTypesFor(propertyInfo.Type))
+            foreach (var bindableType in BindableClassesUtils.GetBindableTypesFor(propertyInfo.Type))
             {
                 PossibleTypesList.Add(bindableType);
             }
@@ -65,8 +67,12 @@ namespace BetterBinding.Editor
 
                 BindingsArray.InsertArrayElementAtIndex(BindingsArray.arraySize);
                 CreateInstance(BindingsArray.GetArrayElementAtIndex(BindingsArray.arraySize - 1), type);
-
+                
                 CanBeFoldout = BindingsArray.arraySize > 0;
+                if (!Foldout)
+                {
+                    Foldout = true;
+                }
             }
         }
 
@@ -76,6 +82,5 @@ namespace BetterBinding.Editor
             property.managedReferenceValue = target;
             property.serializedObject.ApplyModifiedProperties();
         }
-
     }
 }

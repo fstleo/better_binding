@@ -3,22 +3,25 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using BetterBinding.Runtime;
 using UnityEngine;
 
-namespace BetterBinding.Editor
+namespace BetterBinding.Editor.Utils
 {
-    public static class BinderHelper
+    public static class BindableClassesUtils
     {
         private const string PropertyName = "Property";
         private static readonly Type BaseType = typeof(IViewModel);
+        private static readonly Type BaseCollectionType = typeof(ICollectionViewModel<>);
+        private static readonly Type BindableInterface = typeof(IBindable<>);
         private static readonly Type MonoBehaviourType = typeof(MonoBehaviour);
         public static readonly Dictionary<string, ulong> ContractsByName = new();
         public static readonly Dictionary<ulong, string> ContractsById = new();
         
         public static readonly Dictionary<ulong, Dictionary<ulong, (string Name, Type Type)>> PropertiesByContracts = new();
 
-        static BinderHelper()
+        static BindableClassesUtils()
         {
             foreach (var contract in GetContractTypes())
             {
@@ -48,7 +51,9 @@ namespace BetterBinding.Editor
         {
             var types = AppDomain.CurrentDomain.GetAssemblies()
                 .SelectMany(s => s.GetTypes())
-                .Where(p => BaseType.IsAssignableFrom(p) && p != BaseType); 
+                .Where(p => BaseType.IsAssignableFrom(p)
+                            && p.GetCustomAttribute<HideInBinderAttribute>() == null
+                            && p != BaseType); 
             return types;
         }
 
@@ -63,18 +68,40 @@ namespace BetterBinding.Editor
         
         public static IEnumerable<Type> GetBindableTypesFor(Type propertyType)
         {
-            var baseType = BaseType.IsAssignableFrom(propertyType) 
-                ? typeof(IBindable<IViewModel>) 
-                : typeof(IBindable<>).MakeGenericType(propertyType);
-            
+            Type? baseType = null;
+            if (BaseType.IsAssignableFrom(propertyType))
+            {
+                baseType = typeof(IBindable<IViewModel>);
+            }
+
+            var baseCollectionType = BaseCollectionType.MakeGenericType(propertyType.GenericTypeArguments);
+            if (baseCollectionType.IsAssignableFrom(propertyType))
+            {
+                baseType = BindableInterface.MakeGenericType(baseCollectionType);
+            }
+
+            baseType ??= BindableInterface.MakeGenericType(propertyType);
+
             var types = AppDomain.CurrentDomain.GetAssemblies()
                 .SelectMany(s => s.GetTypes())
-                .Where(p => baseType.IsAssignableFrom(p) 
-                            && !MonoBehaviourType.IsAssignableFrom(p)
-                            && p != baseType 
-                            && !p.IsAbstract 
-                            && !p.IsInterface); 
+                .Where(p =>
+                {
+                    if (!p.IsAbstract && !p.IsInterface && p != baseType
+                        && p.GetCustomAttribute<HideInBinderAttribute>() == null
+                        && !MonoBehaviourType.IsAssignableFrom(p)
+                        && ContainsBindingInterface(p))
+                    {
+                        return !p.IsGenericType && baseType.IsAssignableFrom(p);
+                    }
+
+                    return false;
+                });
             return types;
+        }
+
+        private static bool ContainsBindingInterface(Type t)
+        {
+            return t.GetInterface(BindableInterface.Name) != null;
         }
     }
 }

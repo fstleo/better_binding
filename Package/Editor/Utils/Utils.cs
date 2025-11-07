@@ -2,7 +2,7 @@
 
 using System.Diagnostics.CodeAnalysis;
 
-namespace BetterBinding.Editor
+namespace BetterBinding.Editor.Utils
 {
     public static class Utils
     {

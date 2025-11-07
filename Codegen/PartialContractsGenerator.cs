@@ -13,7 +13,6 @@ namespace BetterBinding.CodeGen
     [Generator]
     public class PartialContractsGenerator : ISourceGenerator
     {
-        
         public void Initialize(GeneratorInitializationContext context)
         {
             context.RegisterForSyntaxNotifications(() => new SyntaxCollector());
@@ -42,12 +41,49 @@ namespace BetterBinding.CodeGen
 
             foreach (var (propertiesOwner, namedSymbol) in contractsList)
             {
-                var code = GenerateForType(propertiesOwner, namedSymbol);
+                var code = GenerateForType(propertiesOwner, namedSymbol, 
+                    context.Compilation.GetSemanticModel(propertiesOwner.SyntaxTree));
                 context.AddSource($"{propertiesOwner.Identifier.Text}.g.cs", code);
+            }
+            
+            foreach (var collectionType in syntaxCollector.CollectionsToCreate)
+            {
+                var collectionWriter = new CodeWriter();
+                collectionWriter.AppendLine("#nullable enable");
+                collectionWriter.AppendLine();
+                foreach (var dependency in collectionType.Usings)
+                {
+                    collectionWriter.AppendLine($"using {dependency};");
+                }
+                
+                collectionWriter.AppendLine();
+ 
+                var genericParametersStartIndex = collectionType.ClassName.IndexOf("<", StringComparison.OrdinalIgnoreCase);
+                if (genericParametersStartIndex < 0)
+                {
+                    continue;
+                }
+                
+                var genericParameters = collectionType.ClassName.Substring(genericParametersStartIndex);
+                genericParameters = genericParameters.Substring(1, genericParameters.Length - 2);
+                
+                var className = collectionType.ClassName.Substring(0, genericParametersStartIndex) 
+                                + genericParameters;
+                using (collectionWriter.BeginBlockScope($"namespace {collectionType.Namespace}"))
+                {
+                    using (collectionWriter.BeginBlockScope(
+                               $"public class {genericParameters}CollectionBinding : CollectionBinding<{genericParameters}>"))
+                    {
+                    }
+                }
+                
+                context.AddSource($"{className}Binding.g.cs", collectionWriter.ToString());
             }
         }
 
-        private static string GenerateForType(TypeDeclarationSyntax viewModel, INamedTypeSymbol namedSymbol)
+        private static string GenerateForType(TypeDeclarationSyntax viewModel,
+            INamedTypeSymbol namedSymbol, 
+            SemanticModel semanticModel)
         {
             var containingNamespace = viewModel.GetFullNamespace();
             var contractWriter = new CodeWriter();
@@ -58,17 +94,33 @@ namespace BetterBinding.CodeGen
             contractWriter.AppendLine("using System.Collections.Generic;");
             contractWriter.AppendLine("using System.Diagnostics.CodeAnalysis;");
             
+            contractWriter.AppendLine();
             IDisposable? namespaceScope = null;
             if (!string.IsNullOrWhiteSpace(containingNamespace))
             {
                 namespaceScope = contractWriter.BeginBlockScope($"namespace {containingNamespace}");
             }
+            
             contractWriter.AppendLine();
-            foreach (var parameter in viewModel.Modifiers)
-            {
-                contractWriter.AppendLine("//" + parameter.Text);
-            }
 
+            var classDeclaration = MakeClassDeclaration(viewModel);
+            using (contractWriter.BeginBlockScope($"{classDeclaration}"))
+            {
+                var bindableProperties = viewModel.GetBindableProperties(semanticModel).ToArray();
+                GenerateTryGetPropertiesMethod(contractWriter, bindableProperties);
+                contractWriter.AppendLine();
+                GenerateContractsList(namedSymbol, contractWriter);
+                contractWriter.AppendLine();
+                GenerateDispose(contractWriter, viewModel, bindableProperties);
+            }
+            
+            contractWriter.AppendLine();
+            namespaceScope?.Dispose();
+            return contractWriter.ToString();
+        }
+
+        private static string MakeClassDeclaration(TypeDeclarationSyntax viewModel)
+        {
             var declarationBuilder = new StringBuilder();
             var modifiers = viewModel.Modifiers.Select(modifier => modifier.Text);
             foreach (var modifier in modifiers)
@@ -76,23 +128,21 @@ namespace BetterBinding.CodeGen
                 declarationBuilder.Append(modifier + " ");
             }
 
-            declarationBuilder.Append($"class {viewModel.Identifier.Text} : IViewModel");
+            var typeParameters = string.Empty;
+            if (viewModel.TypeParameterList != null)
+            {
+                typeParameters = string.Join(", ", viewModel.TypeParameterList.Parameters.Select(p => p.Identifier.Text));
+                typeParameters = $"<{typeParameters}>";
+            }
+            
+            declarationBuilder.Append($"class {viewModel.Identifier.Text}{typeParameters} : IViewModel");
             if (viewModel.BaseList == null 
                 || viewModel.BaseList.Types.All(type => type.ToString() != nameof(IDisposable)))
             {
                 declarationBuilder.Append($", {nameof(IDisposable)}");
             }
             
-            using (contractWriter.BeginBlockScope($"{declarationBuilder}"))
-            {
-                GeneratePropertiesList(contractWriter, viewModel);
-                contractWriter.AppendLine();
-                GenerateContractsList(namedSymbol, contractWriter);
-                contractWriter.AppendLine();
-            }
-            
-            namespaceScope?.Dispose();
-            return contractWriter.ToString();
+            return declarationBuilder.ToString();
         }
 
         private static void GenerateContractsList(INamedTypeSymbol namedSymbol, CodeWriter contractWriter)
@@ -115,9 +165,8 @@ namespace BetterBinding.CodeGen
             }
         }
 
-        private static void GeneratePropertiesList(CodeWriter contractWriter, TypeDeclarationSyntax viewModel)
+        private static void GenerateTryGetPropertiesMethod(CodeWriter contractWriter, PropertyDeclarationSyntax[] bindableProperties)
         {
-            var bindableProperties = viewModel.GetBindableProperties().ToArray();
             using (contractWriter.BeginBlockScope("public bool TryGetProperty(ulong id, [NotNullWhen(true)] out object? value)"))
             {
                 //TODO: Make it Dictionary for many (>5?) properties
@@ -133,7 +182,11 @@ namespace BetterBinding.CodeGen
                     contractWriter.AppendLine("default: { value = null; return false; }");
                 }
             }
+        }
 
+        private static void GenerateDispose(CodeWriter contractWriter, TypeDeclarationSyntax viewModel, 
+            PropertyDeclarationSyntax[] bindableProperties)
+        {
             if (!viewModel.Members.Any(member => member
                     is MethodDeclarationSyntax method && method.Identifier.Text
                     .Equals("Dispose", StringComparison.InvariantCultureIgnoreCase)))
@@ -144,7 +197,6 @@ namespace BetterBinding.CodeGen
                 }
             }
             
-            
             contractWriter.AppendLine();
             using (contractWriter.BeginBlockScope("private void DisposeInternal()"))
             {
@@ -154,8 +206,6 @@ namespace BetterBinding.CodeGen
                     contractWriter.AppendLine($"{propertyName}.Dispose();");
                 }
             }
-            
-            contractWriter.AppendLine();
         }
         
         //TODO: move to a separate lib

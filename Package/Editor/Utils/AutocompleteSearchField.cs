@@ -8,7 +8,7 @@ using UnityEditor;
 using UnityEditor.IMGUI.Controls;
 using UnityEngine;
 
-namespace BetterBinding.Editor
+namespace BetterBinding.Editor.Utils
 {
     public class AutocompleteSearchField
     {

@@ -56,5 +56,6 @@ namespace BetterBinding.Tests
             _testProperty.OnNext(5);   
             Assert.AreEqual(4, _testPropertyBinding.Value);
         }
+
     }
 }

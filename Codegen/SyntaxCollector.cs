@@ -12,28 +12,52 @@ namespace BetterBinding.CodeGen;
 internal class SyntaxCollector : ISyntaxReceiver
 {
     public List<TypeDeclarationSyntax> WorkItems { get; } = new();
+    public List<(List<string> Usings, string? Namespace, string ClassName)> CollectionsToCreate { get; } = new();
 
     public void OnVisitSyntaxNode(SyntaxNode syntaxNode)
     {
-        if (syntaxNode is TypeDeclarationSyntax type && IsCandidateType(type))
+        if (syntaxNode is not TypeDeclarationSyntax type || !IsCandidateType(type))
         {
-            WorkItems.Add(type);
+            return;
+        }
+        
+        WorkItems.Add(type);
+        List<UsingDirectiveSyntax> namespaces = [];
+        var current = syntaxNode;
+        while (current != null)
+        {
+            switch (current)
+            {
+                case NamespaceDeclarationSyntax n:
+                    namespaces.AddRange(n.Usings);
+                    break;
+                case FileScopedNamespaceDeclarationSyntax fileNamespace:
+                    namespaces.AddRange(fileNamespace.Usings);
+                    break;
+                case CompilationUnitSyntax cu:
+                    namespaces.AddRange(cu.Usings);
+                    break;
+            }
+            
+            current = current.Parent;
+        }
+
+        var fullNamespace = type.GetFullNamespace();
+        foreach (var member in type.Members)
+        {
+            if (member is PropertyDeclarationSyntax property
+                && property.Type.ToString().Contains("CollectionViewModel<"))
+            {
+                CollectionsToCreate.Add((namespaces.Select(ns => ns.Name.ToString()).ToList(),
+                    fullNamespace,
+                    property.Type.ToString()));
+            }
         }
     }
 
     private static bool IsCandidateType(TypeDeclarationSyntax? syntax)
     {
-        if (syntax is null)
-        {
-            return false;
-        }
-        
-        if (!syntax.Modifiers.Any(m => m.IsKind(SyntaxKind.PartialKeyword)))
-        {
-            return false;
-        }
-
-        return syntax.GetBindableProperties().Any();
+        return syntax is not null && syntax.Modifiers.Any(m => m.IsKind(SyntaxKind.PartialKeyword));
     }
 
 }

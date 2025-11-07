@@ -2,12 +2,14 @@
 
 using System;
 using System.Collections.Generic;
+using BetterBinding.Editor.Utils;
 using BetterBinding.Runtime;
 using BetterBinding.Runtime.Bindings;
 using UnityEditor;
 
-namespace BetterBinding.Editor
+namespace BetterBinding.Editor.BinderEditor
 {
+    [HideInBinder]
     public partial class ContractEditorVm : IDisposable
     {
         public string ContractName { get; private set; } = string.Empty;
@@ -18,7 +20,7 @@ namespace BetterBinding.Editor
 
         public ContractEditorVm(SerializedProperty contractIdProperty, SerializedProperty bindingsProperty)
         {
-            if (BinderHelper.ContractsById.TryGetValue(contractIdProperty.ulongValue, out var contractName))
+            if (BindableClassesUtils.ContractsById.TryGetValue(contractIdProperty.ulongValue, out var contractName))
             {
                 ContractName = contractName;
             }
@@ -31,7 +33,7 @@ namespace BetterBinding.Editor
                 }
 
                 if (newContractName.IsNullOrEmpty()
-                    || !BinderHelper.ContractsByName.TryGetValue(newContractName, out var contractId))
+                    || !BindableClassesUtils.ContractsByName.TryGetValue(newContractName, out var contractId))
                 {
                     return;
                 }
@@ -49,7 +51,7 @@ namespace BetterBinding.Editor
 
         private void RecreateBindings(ulong contractId, SerializedProperty bindingsProperty)
         {
-            if (BinderHelper.PropertiesByContracts.TryGetValue(contractId, out var properties))
+            if (BindableClassesUtils.PropertiesByContracts.TryGetValue(contractId, out var properties))
             {
                 CreateBindings(bindingsProperty, properties);
             }

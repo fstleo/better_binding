@@ -1,12 +1,13 @@
 #nullable enable
 
 using System.Linq;
+using BetterBinding.Editor.Utils;
 using BetterBinding.Runtime;
 using BetterBinding.Runtime.Bindings;
 using UnityEditor;
 using UnityEngine;
 
-namespace BetterBinding.Editor
+namespace BetterBinding.Editor.BinderEditor
 {
     [CustomEditor(typeof(Binder))]
     public class BinderDrawer : UnityEditor.Editor
@@ -44,7 +45,7 @@ namespace BetterBinding.Editor
             };
         
             _vm = new ContractEditorVm(serializedObject.FindProperty("_contractId"), serializedObject.FindProperty("_serializedBindings"));
-            _vm.PossibleContracts.AddRange(BinderHelper.ContractsByName.Keys);
+            _vm.PossibleContracts.AddRange(BindableClassesUtils.ContractsByName.Keys);
         }
 
         private void OnDisable()
@@ -91,6 +92,7 @@ namespace BetterBinding.Editor
                 foreach (var binding in _vm.Bindings)
                 {
                     DrawBinding(binding);
+                    EditorGUILayout.Space();
                 }
             }
 
@@ -172,18 +174,24 @@ namespace BetterBinding.Editor
                 var property = binding.BindingsArray.GetArrayElementAtIndex(index).Copy();
                 if (property.managedReferenceValue != null)
                 {
-                    var typeName = property.managedReferenceValue.GetType().Name;
                     var end = property.GetEndProperty();
+                    var propertyRect = EditorGUILayout.BeginVertical();
                     while (property.NextVisible(true) && !SerializedProperty.EqualContents(property, end))
                     {
-                        EditorGUILayout.PropertyField(property, new GUIContent(typeName));
+                        EditorGUILayout.PropertyField(property, new GUIContent(property.displayName));
                     }
+                    
+                    EditorGUILayout.EndVertical();
+                    propertyRect = new Rect(propertyRect.x, propertyRect.y - 5, propertyRect.width + 20,
+                        propertyRect.height + 10);
+                    DrawBackground(propertyRect);
                 }
             
                 EditorGUILayout.Space();
                 EditorGUILayout.EndHorizontal();
             }
 
+            EditorGUILayout.Space();
             serializedObject.ApplyModifiedProperties();
 
             EditorGUI.indentLevel--;

@@ -2,7 +2,9 @@
 
 using System;
 using System.Collections.Generic;
+using UnityEngine;
 using UnityEngine.Pool;
+using Random = UnityEngine.Random;
 
 namespace BetterBinding.Runtime
 {
@@ -54,6 +56,7 @@ namespace BetterBinding.Runtime
 
             private IObserver<T>? _observer;
             private IDisposable? _toDispose;
+            private Property<T>? _owner;
 
             private static Subscription Create()
             {
@@ -80,10 +83,10 @@ namespace BetterBinding.Runtime
             {
                 var pooledItem = SubscriberPool.Get(out subscription);
                 subscription._observer = observer;
+                subscription._owner = property; 
                 if (property._subscription != null)
                 {
                     property._subscription.AddToTheEnd(subscription);
-                    subscription.Previous = property._subscription;
                 }
                 else
                 {
@@ -95,6 +98,11 @@ namespace BetterBinding.Runtime
 
             private void AddToTheEnd(Subscription subscription)
             {
+                if (subscription == this)
+                {
+                    return;
+                }
+                
                 if (Next == null)
                 {
                     Next = subscription;
@@ -108,20 +116,30 @@ namespace BetterBinding.Runtime
             
             public void Dispose()
             {
-                if (Previous != null)
+                if (_owner == null)
+                {
+                    return;
+                }
+                
+                if (_owner._subscription == this)
+                {
+                    _owner._subscription = Next;
+                }
+                else if (Previous != null)
                 {
                     Previous.Next = Next;
                 }
-
+                
                 if (Next != null)
                 {
                     Next.Previous = Previous;
                 }
-
+                
                 _toDispose?.Dispose();
                 Previous = null;
                 Next = null;
                 _observer = null;
+                _owner = null;
             }
 
             public void OnNext(T? value)
@@ -143,8 +161,7 @@ namespace BetterBinding.Runtime
         
         public IDisposable Subscribe(Action<T?> subscriber)
         {
-            var listener = Observer.Create(subscriber);
-            return Subscription.Create(this, listener);
+            return Subscription.Create(this, subscriber);
         }
         
         public T? Value

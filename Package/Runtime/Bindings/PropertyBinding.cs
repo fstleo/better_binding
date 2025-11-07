@@ -20,6 +20,7 @@ namespace BetterBinding.Runtime.Bindings
         public override void Unbind()
         {
             _subscription?.Dispose();
+            _subscription = null;
         }
         
         public abstract void OnNext(T? value);

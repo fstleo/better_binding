@@ -7,7 +7,7 @@ using System.Linq;
 using UnityEditor;
 using UnityEngine;
 
-namespace BetterBinding.Editor
+namespace BetterBinding.Editor.Utils
 {
     
     public class SearchPopup : PopupWindowContent
