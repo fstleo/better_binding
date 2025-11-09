@@ -1,6 +1,6 @@
 {
   "name": "com.fstleo.betterbinding",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "displayName": "Better Binding",
   "description": "Allows binding Unity components to reactive properties",
   "unity": "2021.3",
