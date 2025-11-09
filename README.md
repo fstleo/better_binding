@@ -6,7 +6,7 @@ This package allows to make bindings between reactive properties and Unity compo
 #### UPM
 Open the package manager window (menu: Window > Package Manager)<br/>
 Select "Add package from git URL...", fill in the pop-up with the following link:<br/>
-https://github.com/fstleo/better_binding.git?path=Package#1.0.0<br/>
+https://github.com/fstleo/better_binding.git?path=Package#1.1<br/>
 
 ## Usage
 
@@ -18,7 +18,7 @@ https://github.com/fstleo/better_binding.git?path=Package#1.0.0<br/>
 ### Bindings
 
 First, you need to create your binding classes.
-There are three types of bindings: [PropertyBinding](#PropertyBinding),  [CommandBinding](#CommandBinding), [TwoWayBinding](#TwoWayBinding). You can find more examples in the Samples project. 
+There are three types of base bindings: [PropertyBinding](#PropertyBinding),  [CommandBinding](#CommandBinding), [TwoWayBinding](#TwoWayBinding). You can find more examples in the Samples project. 
 
 #### ```PropertyBinding```
 PropertyBinding passes value from reactive property to component.
