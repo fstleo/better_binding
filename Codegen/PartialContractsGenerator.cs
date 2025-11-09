@@ -70,14 +70,19 @@ namespace BetterBinding.CodeGen
                 
                 className = className.Substring(0, genericParametersStartIndex) 
                                 + genericParameters;
-                using (collectionWriter.BeginBlockScope($"namespace {collectionType.Value.Namespace}"))
+                IDisposable? namespaceScope = null;
+                if (!string.IsNullOrEmpty(collectionType.Value.Namespace))
                 {
-                    using (collectionWriter.BeginBlockScope(
-                               $"public class {genericParameters}CollectionBinding : CollectionBinding<{genericParameters}>"))
-                    {
-                    }
+                    namespaceScope = collectionWriter.BeginBlockScope($"namespace {collectionType.Value.Namespace}");
                 }
                 
+                using (collectionWriter.BeginBlockScope(
+                           $"public class {genericParameters}CollectionBinding : CollectionBinding<{genericParameters}>"))
+                {
+                }
+
+                namespaceScope?.Dispose();
+
                 context.AddSource($"{className}Binding.g.cs", collectionWriter.ToString());
             }
         }
