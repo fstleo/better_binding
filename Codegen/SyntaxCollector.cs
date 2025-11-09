@@ -12,7 +12,7 @@ namespace BetterBinding.CodeGen;
 internal class SyntaxCollector : ISyntaxReceiver
 {
     public List<TypeDeclarationSyntax> WorkItems { get; } = new();
-    public List<(List<string> Usings, string? Namespace, string ClassName)> CollectionsToCreate { get; } = new();
+    public Dictionary<string, (List<string> Usings, string? Namespace)> CollectionsToCreate { get; } = new();
 
     public void OnVisitSyntaxNode(SyntaxNode syntaxNode)
     {
@@ -48,9 +48,9 @@ internal class SyntaxCollector : ISyntaxReceiver
             if (member is PropertyDeclarationSyntax property
                 && property.Type.ToString().Contains("CollectionViewModel<"))
             {
-                CollectionsToCreate.Add((namespaces.Select(ns => ns.Name.ToString()).ToList(),
-                    fullNamespace,
-                    property.Type.ToString()));
+                CollectionsToCreate[property.Type.ToString()] = 
+                    (namespaces.Select(ns => ns.Name.ToString()).ToList(),
+                    fullNamespace);
             }
         }
     }

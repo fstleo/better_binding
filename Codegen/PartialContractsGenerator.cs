@@ -48,28 +48,29 @@ namespace BetterBinding.CodeGen
             
             foreach (var collectionType in syntaxCollector.CollectionsToCreate)
             {
+                var className = collectionType.Key;
                 var collectionWriter = new CodeWriter();
                 collectionWriter.AppendLine("#nullable enable");
                 collectionWriter.AppendLine();
-                foreach (var dependency in collectionType.Usings)
+                foreach (var dependency in collectionType.Value.Usings)
                 {
                     collectionWriter.AppendLine($"using {dependency};");
                 }
                 
                 collectionWriter.AppendLine();
  
-                var genericParametersStartIndex = collectionType.ClassName.IndexOf("<", StringComparison.OrdinalIgnoreCase);
+                var genericParametersStartIndex = collectionType.Key.IndexOf("<", StringComparison.OrdinalIgnoreCase);
                 if (genericParametersStartIndex < 0)
                 {
                     continue;
                 }
                 
-                var genericParameters = collectionType.ClassName.Substring(genericParametersStartIndex);
+                var genericParameters = className.Substring(genericParametersStartIndex);
                 genericParameters = genericParameters.Substring(1, genericParameters.Length - 2);
                 
-                var className = collectionType.ClassName.Substring(0, genericParametersStartIndex) 
+                className = className.Substring(0, genericParametersStartIndex) 
                                 + genericParameters;
-                using (collectionWriter.BeginBlockScope($"namespace {collectionType.Namespace}"))
+                using (collectionWriter.BeginBlockScope($"namespace {collectionType.Value.Namespace}"))
                 {
                     using (collectionWriter.BeginBlockScope(
                                $"public class {genericParameters}CollectionBinding : CollectionBinding<{genericParameters}>"))
