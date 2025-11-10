@@ -12,6 +12,6 @@
     <Target Name="Release" AfterTargets="Build">
         <Copy
                 SourceFiles="$(TargetDir)/$(ProjectName).dll"
-                DestinationFolder="../Assets/" />
+                DestinationFolder="../Package/" />
     </Target>
 </Project>
