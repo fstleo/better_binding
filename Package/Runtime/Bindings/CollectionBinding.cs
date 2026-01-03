@@ -25,26 +25,32 @@ namespace BetterBinding.Runtime
         {
             for (var index = 0; index < collection.Elements.Count; index++)
             {
-                CreateElement(collection.Elements[index]);
+                CreateElement((collection.Elements[index], index));
             }
 
             _subscriptions = ListPool<IDisposable>.Get();
-            _subscriptions.Add(collection.AddElement.Subscribe(CreateElement));
-            _subscriptions.Add(collection.RemoveElement.Subscribe(RemoveElement));
+            _subscriptions.Add(collection.Added.Subscribe(CreateElement));
+            _subscriptions.Add(collection.Removed.Subscribe(RemoveElement));
         }
 
         private void RemoveElement(int index)
         {
+            if (index < 0 || index > _elements.Count - 1)
+            {
+                return;
+            }
+
             var binder = _elements[index];
             binder.Unbind();
             Object.Destroy(binder.gameObject);
             _elements.RemoveAt(index);
         }
 
-        private void CreateElement(T? element)
+        private void CreateElement((T? Item, int Index) element)
         {
             var binder = Object.Instantiate(_collectionElementPrefab, _collectionRoot);
-            binder.Bind(element);
+            binder.transform.SetSiblingIndex(element.Index);
+            binder.Bind(element.Item);
             _elements.Add(binder);
         }
 

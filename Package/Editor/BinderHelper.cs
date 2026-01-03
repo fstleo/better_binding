@@ -4,12 +4,13 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using BetterBinding.Editor.Utils;
 using BetterBinding.Runtime;
 using UnityEngine;
 
-namespace BetterBinding.Editor.Utils
+namespace BetterBinding.Editor
 {
-    public static class BindableClassesUtils
+    public static class BinderHelper
     {
         private const string PropertyName = "Property";
         private static readonly Type BaseType = typeof(IViewModel);
@@ -21,7 +22,7 @@ namespace BetterBinding.Editor.Utils
         
         public static readonly Dictionary<ulong, Dictionary<ulong, (string Name, Type Type)>> PropertiesByContracts = new();
 
-        static BindableClassesUtils()
+        static BinderHelper()
         {
             foreach (var contract in GetContractTypes())
             {
@@ -51,9 +52,7 @@ namespace BetterBinding.Editor.Utils
         {
             var types = AppDomain.CurrentDomain.GetAssemblies()
                 .SelectMany(s => s.GetTypes())
-                .Where(p => BaseType.IsAssignableFrom(p)
-                            && p.GetCustomAttribute<HideInBinderAttribute>() == null
-                            && p != BaseType); 
+                .Where(p => BaseType.IsAssignableFrom(p) && p != BaseType); 
             return types;
         }
 
@@ -74,13 +73,10 @@ namespace BetterBinding.Editor.Utils
                 baseType = typeof(IBindable<IViewModel>);
             }
 
-            if (propertyType.IsGenericType)
+            var baseCollectionType = BaseCollectionType.MakeGenericType(propertyType.GenericTypeArguments);
+            if (baseCollectionType.IsAssignableFrom(propertyType))
             {
-                var baseCollectionType = BaseCollectionType.MakeGenericType(propertyType.GenericTypeArguments);
-                if (baseCollectionType.IsAssignableFrom(propertyType))
-                {
-                    baseType = BindableInterface.MakeGenericType(baseCollectionType);
-                }
+                baseType = BindableInterface.MakeGenericType(baseCollectionType);
             }
 
             baseType ??= BindableInterface.MakeGenericType(propertyType);

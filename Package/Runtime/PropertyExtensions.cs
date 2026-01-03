@@ -11,7 +11,7 @@ namespace BetterBinding.Runtime
     
         public static void Execute<T>(this Property<T> property, T? value)
         {
-            property.OnNext(value);
+            property.OnNext(value, true);
         }
     }
 }

@@ -65,7 +65,10 @@ namespace BetterBinding.Runtime.Bindings
             {
                 foreach (var binding in serializedBinding.Bindings)
                 {
-                    binding.Unbind();
+                    if (binding != null)
+                    {
+                        binding.Unbind();
+                    }
                 }
             }    
         }

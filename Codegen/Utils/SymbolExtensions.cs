@@ -1,6 +1,7 @@
 ﻿#nullable enable
 
 using System.Collections.Generic;
+using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
@@ -15,18 +16,21 @@ public static class SymbolExtensions
     ];
 
     public static IEnumerable<PropertyDeclarationSyntax> GetBindableProperties(this TypeDeclarationSyntax type, 
-        SemanticModel semanticModel)
+        SemanticModel semanticModel, HashSet<string> contractsNames)
     {
         foreach (var member in type.Members)
         {
-            if (member is PropertyDeclarationSyntax property && IsBindableProperty(member, semanticModel))
+            if (member is PropertyDeclarationSyntax property 
+                && (contractsNames.Contains(property.Type.ToString())
+                || IsBindableProperty(member, semanticModel)))
             {
                 yield return property;
             }
         }
     }
 
-    private static bool IsBindableProperty(this MemberDeclarationSyntax member, SemanticModel semanticModel)
+    private static bool IsBindableProperty(this MemberDeclarationSyntax member, 
+        SemanticModel semanticModel)
     {
         if (member is not PropertyDeclarationSyntax property)
         {
@@ -38,7 +42,8 @@ public static class SymbolExtensions
         {
             return false;
         }
-            
+
+        
         foreach (var implementedInterface in propertyType.Type.AllInterfaces)
         {
             foreach (var bindableInterface in BindableInterfaces)

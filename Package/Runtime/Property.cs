@@ -191,11 +191,16 @@ namespace BetterBinding.Runtime
         
         public void OnNext(T? value)
         {
-            if (_comparer == null || !_comparer.Equals(_value, value))
+            OnNext(value, false);
+        }
+
+        internal void OnNext(T? value, bool force)
+        {
+            if (force || _comparer == null || !_comparer.Equals(_value, value))
             {
                 _subscription?.OnNext(value);
             }
-        
+
             _value = value;
         }
         

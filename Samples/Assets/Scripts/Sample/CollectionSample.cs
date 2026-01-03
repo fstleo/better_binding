@@ -21,14 +21,14 @@ namespace BetterBinding.Sample
 
         private void AddElement()
         {
-            _viewModel.Collection.AddElement.OnNext(new SimpleViewModel());    
+            _viewModel.Collection.Add(new SimpleViewModel());    
         }
         
         private void RemoveLastElement()
         {
             if (_viewModel.Collection.Elements.Count > 0)
             {
-                _viewModel.Collection.RemoveElement.OnNext(_viewModel.Collection.Elements.Count - 1);    
+                _viewModel.Collection.RemoveAt(_viewModel.Collection.Elements.Count - 1);    
             }
         }
         

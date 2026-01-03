@@ -13,6 +13,8 @@ namespace BetterBinding.CodeGen
     [Generator]
     public class PartialContractsGenerator : ISourceGenerator
     {
+        private HashSet<string> _contractsNames = new();
+        
         public void Initialize(GeneratorInitializationContext context)
         {
             context.RegisterForSyntaxNotifications(() => new SyntaxCollector());
@@ -39,10 +41,15 @@ namespace BetterBinding.CodeGen
                 contractsList.Add((propertiesOwner, namedSymbol));
             }
 
+            foreach (var (contract, namedTypeSymbol) in contractsList)
+            {
+                _contractsNames.Add(contract.Identifier.Text);
+            }
+
             foreach (var (propertiesOwner, namedSymbol) in contractsList)
             {
                 var code = GenerateForType(propertiesOwner, namedSymbol, 
-                    context.Compilation.GetSemanticModel(propertiesOwner.SyntaxTree));
+                    context.Compilation.GetSemanticModel(propertiesOwner.SyntaxTree), _contractsNames);
                 context.AddSource($"{propertiesOwner.Identifier.Text}.g.cs", code);
             }
             
@@ -88,8 +95,8 @@ namespace BetterBinding.CodeGen
         }
 
         private static string GenerateForType(TypeDeclarationSyntax viewModel,
-            INamedTypeSymbol namedSymbol, 
-            SemanticModel semanticModel)
+            INamedTypeSymbol namedSymbol,
+            SemanticModel semanticModel, HashSet<string> contractsNames)
         {
             var containingNamespace = viewModel.GetFullNamespace();
             var contractWriter = new CodeWriter();
@@ -112,7 +119,9 @@ namespace BetterBinding.CodeGen
             var classDeclaration = MakeClassDeclaration(viewModel);
             using (contractWriter.BeginBlockScope($"{classDeclaration}"))
             {
-                var bindableProperties = viewModel.GetBindableProperties(semanticModel).ToArray();
+                var bindableProperties = viewModel
+                    .GetBindableProperties(semanticModel, contractsNames)
+                    .ToArray();
                 GenerateTryGetPropertiesMethod(contractWriter, bindableProperties);
                 contractWriter.AppendLine();
                 GenerateContractsList(namedSymbol, contractWriter);

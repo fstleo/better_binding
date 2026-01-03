@@ -6,7 +6,7 @@ This package allows to make bindings between reactive properties and Unity compo
 #### UPM
 Open the package manager window (menu: Window > Package Manager)<br/>
 Select "Add package from git URL...", fill in the pop-up with the following link:<br/>
-https://github.com/fstleo/better_binding.git?path=Package#1.1<br/>
+https://github.com/fstleo/better_binding.git?path=Package#1.2<br/>
 
 ## Usage
 
