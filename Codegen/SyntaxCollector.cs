@@ -20,8 +20,7 @@ internal class SyntaxCollector : ISyntaxReceiver
         {
             return;
         }
-        
-        WorkItems.Add(type);
+
         List<UsingDirectiveSyntax> namespaces = [];
         var current = syntaxNode;
         while (current != null)
@@ -42,16 +41,31 @@ internal class SyntaxCollector : ISyntaxReceiver
             current = current.Parent;
         }
 
+        var hasBindableProperties = false;
+
         var fullNamespace = type.GetFullNamespace();
         foreach (var member in type.Members)
         {
-            if (member is PropertyDeclarationSyntax property
-                && property.Type.ToString().Contains("CollectionViewModel<"))
+            if (member is PropertyDeclarationSyntax property)
             {
-                CollectionsToCreate[property.Type.ToString()] = 
-                    (namespaces.Select(ns => ns.Name.ToString()).ToList(),
-                    fullNamespace);
+                if (property.Type.ToString().Contains("Property<"))
+                {
+                    hasBindableProperties = true;                   
+                }
+
+                if (property.Type.ToString().Contains("CollectionViewModel<"))
+                {
+                    hasBindableProperties = true;
+                    CollectionsToCreate[property.Type.ToString()] =
+                        (namespaces.Select(ns => ns.Name.ToString()).ToList(),
+                        fullNamespace);
+                }
             }
+        }
+
+        if (hasBindableProperties)
+        {
+            WorkItems.Add(type);
         }
     }
 
