@@ -1,5 +1,5 @@
 {
-    "name": "Tests",
+    "name": "BetterBinding.Tests",
     "rootNamespace": "BetterBinding",
     "references": [
         "UnityEngine.TestRunner",
